@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import Form from "react-bootstrap/Form";
 import { API, Storage } from "aws-amplify";
+import { BsArrowRepeat } from "react-icons/bs";
 import { useParams, useHistory } from "react-router-dom";
 import LoaderButton from "../components/LoaderButton";
 import { onError } from "../libs/errorLib";
@@ -15,9 +16,11 @@ export default function Notes() {
   const [note, setNote] = useState(null);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    setIsLoading(true)
     function loadNote() {
       return API.get("notes", `/notes/${id}`);
     }
@@ -33,8 +36,10 @@ export default function Notes() {
 
         setContent(content);
         setNote(note);
+        setIsLoading(false)
       } catch (e) {
         onError(e);
+        setIsLoading(false)
       }
     }
 
@@ -73,7 +78,7 @@ export default function Notes() {
       return;
     }
 
-    setIsLoading(true);
+    setIsSaving(true);
 
     try {
       if (file.current) {
@@ -84,10 +89,11 @@ export default function Notes() {
         content,
         attachment: attachment || note.attachment
       });
+      setIsSaving(false);
       history.push("/");
     } catch (e) {
       onError(e);
-      setIsLoading(false);
+      setIsSaving(false);
     }
   }
 
@@ -116,10 +122,17 @@ export default function Notes() {
       setIsDeleting(false);
     }
   }
-
+  
   return (
     <div className="Notes">
-      {note && (
+
+      { (isLoading || isDeleting) &&
+          <div className="center">
+            <BsArrowRepeat className="spinning" />
+            <div>{isSaving ? 'Saving' : isDeleting ? "Deleting" : 'Loading'}</div>
+          </div>
+      }
+      {note && !isDeleting && !isLoading && (
         <Form onSubmit={handleSubmit}>
           <Form.Group controlId="content">
             <Form.Control
